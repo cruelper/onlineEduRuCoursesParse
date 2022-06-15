@@ -1,0 +1,15 @@
+plugins {
+	id 'java'
+}
+
+group = 'ru.nuykin'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '17'
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation('org.jsoup:jsoup:1.15.1')
+}
