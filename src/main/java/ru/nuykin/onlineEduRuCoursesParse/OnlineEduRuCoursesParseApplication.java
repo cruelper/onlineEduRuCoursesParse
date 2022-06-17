@@ -7,8 +7,7 @@ import org.jsoup.select.Elements;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class OnlineEduRuCoursesParseApplication {
 	static String userAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.115 Safari/537.36 OPR/88.0.4412.40";
@@ -21,33 +20,33 @@ public class OnlineEduRuCoursesParseApplication {
 
 	public static void main(String[] args) throws IOException, InterruptedException {
 
-		FileWriter writer = new FileWriter("coursesInfo.txt", false);
-		String startQuery = "INSERT INTO `allcourses` (`id`, `name`, `univer`, `platform`, `duration`, `link`)";
-		int id = 1132;
+		ArrayList<Fiver> courseInfo = new ArrayList<>();
+		Map<String, Integer> directionsInfo = new HashMap<>();
+		ArrayList<Map.Entry<Integer, Integer>> coursesDirectionsInfo = new ArrayList<>();
 
-		for (int pageNum = 0; pageNum < countOfPages; pageNum++) {
+		int courseId = 1;
+		int directionsId = 1;
+
+		for (int pageNum = 0; pageNum <= countOfPages; pageNum++) {
 			ArrayList<String> courseUrls = getCoursesOnPage(pageNum);
 			for (int i = 0; i < courseUrls.size(); i++) {
-//				System.out.println(i + "  " + baseURL + courseUrls.get(i));
-				Fiver courseData = getCourseData(baseURL + courseUrls.get(i));
-				Thread.sleep(500);
-
-				writer.write(
-						startQuery + " VALUES (" +
-								"'" + id + "', " +
-								"'" + courseData.name + "', " +
-								"'" + courseData.university + "', " +
-								"'" + courseData.platform + "', " +
-								"'" + courseData.duration + "', " +
-								"'" + courseData.url + "'" +
-								");\n"
-				);
-				id++;
+				courseInfo.add(getCourseData(baseURL + courseUrls.get(i)));
+				courseInfo.get(courseInfo.size() - 1).id = courseId;
+				for (String direction : getDirectionFromCoursePage(baseURL + courseUrls.get(i))) {
+					if (!directionsInfo.containsKey(direction)) {
+						directionsInfo.put(direction, directionsId);
+						directionsId++;
+					}
+					coursesDirectionsInfo.add(new AbstractMap.SimpleEntry<>(courseId, directionsInfo.get(direction)));
+				}
+				courseId++;
 			}
 			System.out.println("Страница " + pageNum + " закончена");
 		}
 
-		writer.flush();
+		PrintsFun.PrintCoursesInfo(courseInfo);
+		PrintsFun.PrintDirectionInfo(directionsInfo);
+		PrintsFun.PrintCourseDirection(coursesDirectionsInfo);
 	}
 
 	static ArrayList<String> getCoursesOnPage(int pageNum) throws IOException {
@@ -98,4 +97,15 @@ public class OnlineEduRuCoursesParseApplication {
 		return courseData;
 	}
 
+	static String[] getDirectionFromCoursePage(String courseUrl) throws IOException {
+		Document coursePage = Jsoup.connect(courseUrl).userAgent(userAgent).get();
+
+		try {
+			String directionsDiv = coursePage.getElementById("j_idt142").html();
+			return directionsDiv.split("\n<br>");
+		}
+		catch (NullPointerException e) {
+			return  new String[0];
+		}
+	}
 }
